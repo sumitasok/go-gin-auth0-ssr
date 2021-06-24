@@ -1,7 +1,9 @@
 package main
 
 import (
-	"github.com/asteriaaerospace/back-office/library/middlewares"
+	"encoding/gob"
+	//"github.com/asteriaaerospace/back-office/library/middlewares"
+	"github.com/gin-contrib/sessions"
 	"time"
 
 	"github.com/asteriaaerospace/back-office/handler"
@@ -11,12 +13,21 @@ import (
 	log "github.com/sirupsen/logrus"
 
 	"github.com/gin-contrib/sessions/redis"
+
+	"github.com/joho/godotenv"
 )
 
 var r = gin.New()
 var serverPort = ":7271"
 
 func init() {
+	err := godotenv.Load()
+	if err != nil {
+		log.Print(err.Error())
+	}
+
+	gob.Register(map[string]interface{}{})
+
 	r.HTMLRender = ginTemplate.New(ginTemplate.TemplateConfig{
 		Root:      "templates",
 		Extension: ".gohtml",
@@ -33,7 +44,8 @@ func main() {
 	r.Use(gin.Recovery())
 	log.Infoln("middlewares set in...", time.Since(startAt))
 
-	_, _ = redis.NewStore(10, "tcp", "localhost:6379", "", []byte("secret"))
+	store, _ := redis.NewStore(10, "tcp", "localhost:6379", "", []byte("secret"))
+	r.Use(sessions.Sessions("auth-session", store))
 
 	home := handler.Home{}
 	auth := handler.Authentication{}
@@ -44,8 +56,7 @@ func main() {
 	r.GET("/callback", auth.Callback)
 
 	authR := r.Group("/manage")
-	//authR.Use(sessions.Sessions("session-store", store))
-	authR.Use(middlewares.Authentication())
+	//authR.Use(middlewares.Auth0Authentication())
 
 	authR.GET("/root", home.Root)
 

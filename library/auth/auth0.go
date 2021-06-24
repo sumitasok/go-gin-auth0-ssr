@@ -1,11 +1,8 @@
-package middlewares
+package auth
 
 import (
 	"context"
-	"github.com/gin-contrib/sessions"
-	"github.com/gin-gonic/gin"
 	"log"
-	"net/http"
 	"os"
 
 	"golang.org/x/oauth2"
@@ -13,13 +10,13 @@ import (
 	oidc "github.com/coreos/go-oidc"
 )
 
-type Auth0Authenticator struct {
+type Authenticator struct {
 	Provider *oidc.Provider
 	Config   oauth2.Config
 	Ctx      context.Context
 }
 
-func NewAuthenticator() (*Auth0Authenticator, error) {
+func NewAuthenticator() (*Authenticator, error) {
 	ctx := context.Background()
 
 	provider, err := oidc.NewProvider(ctx, os.Getenv("AUTH0_ISSUER"))
@@ -36,23 +33,9 @@ func NewAuthenticator() (*Auth0Authenticator, error) {
 		Scopes:       []string{oidc.ScopeOpenID, "profile"},
 	}
 
-	return &Auth0Authenticator{
+	return &Authenticator{
 		Provider: provider,
 		Config:   conf,
 		Ctx:      ctx,
 	}, nil
-}
-
-// Auth0Authentication - does authentication of the user via auth0.
-func Auth0Authentication() gin.HandlerFunc {
-	return func(c *gin.Context) {
-		session := sessions.Default(c)
-		sessionID := session.Get("id")
-		if sessionID == nil {
-			c.JSON(http.StatusNotFound, gin.H{
-				"message": "unauthorized",
-			})
-			c.Abort()
-		}
-	}
 }
