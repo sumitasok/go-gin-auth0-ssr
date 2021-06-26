@@ -19,6 +19,7 @@ import (
 
 var r = gin.New()
 var serverPort = ":7271"
+var authSessionName = "authsession" // os.Getenv("AUTH_SESSION_NAME")
 
 func init() {
 	err := godotenv.Load()
@@ -45,7 +46,7 @@ func main() {
 	log.Infoln("middlewares set in...", time.Since(startAt))
 
 	store, _ := redis.NewStore(10, "tcp", "localhost:6379", "", []byte("secret"))
-	r.Use(sessions.Sessions("auth-session", store))
+	r.Use(sessions.Sessions(authSessionName, store))
 
 	home := handler.Home{}
 	auth := handler.Authentication{}

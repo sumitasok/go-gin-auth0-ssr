@@ -46,7 +46,7 @@ func NewAuthenticator() (*Auth0Authenticator, error) {
 // Auth0Authentication - does authentication of the user via auth0.
 func Auth0Authentication() gin.HandlerFunc {
 	return func(c *gin.Context) {
-		session := sessions.Default(c)
+		session := sessions.DefaultMany(c, os.Getenv("AUTH_SESSION_NAME"))
 		sessionID := session.Get("id")
 		if sessionID == nil {
 			c.JSON(http.StatusNotFound, gin.H{

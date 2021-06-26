@@ -13,15 +13,13 @@ import (
 	"os"
 )
 
+var authSessionName = os.Getenv("AUTH_SESSION_NAME")
+
 type Authentication struct {
 }
 
 func (a Authentication) Login(c *gin.Context) {
-	// session sample
 	session := sessions.Default(c)
-	//session.Set("_id", 12090292)
-	//session.Set("_email", "test@gmail.com")
-	//_ = session.Save() // handle error
 
 	// auth0 login
 	b := make([]byte, 32)
@@ -73,8 +71,6 @@ func (a Authentication) Callback(ctx *gin.Context) {
 	session := sessions.Default(ctx)
 	sessionState, ok := session.Get("state").(string)
 
-	session.Set("KEY", "SESSION")
-
 	// session.State
 	if !ok {
 		log.Error("sessionState not found")
@@ -101,13 +97,9 @@ func (a Authentication) Callback(ctx *gin.Context) {
 		return
 	}
 
-	log.Info("code: " + ctx.Query("code"))
-	log.Info("authenticator.Config: ", authenticator.Config)
-	log.Info("authenticator.Config.Provider: ", authenticator.Config.Endpoint.TokenURL)
 	token, err := authenticator.Config.Exchange(context.TODO(), ctx.Query("code"))
 	if err != nil {
-		log.Printf("no token found: %v", err)
-		log.Error("2: ", err.Error())
+		log.Errorf("no token found: %v", err)
 		ctx.JSON(http.StatusUnauthorized, gin.H{
 			"message": err.Error(),
 		})
@@ -148,8 +140,6 @@ func (a Authentication) Callback(ctx *gin.Context) {
 	session.Set("profile", profile)
 
 	err = session.Save()
-
-	// if all pass
 
 	ctx.Redirect(http.StatusSeeOther, "/manage/root")
 }
