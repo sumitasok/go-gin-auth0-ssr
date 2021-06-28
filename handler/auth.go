@@ -10,12 +10,13 @@ import (
 	"github.com/gin-gonic/gin"
 	log "github.com/sirupsen/logrus"
 	"net/http"
+	"net/url"
 	"os"
 )
 
-var authSessionName = os.Getenv("AUTH_SESSION_NAME")
-
 type Authentication struct {
+	// LandingPage - where the user is redirected once logged in; if returnTo is not available.
+	LandingPage string
 }
 
 func (a Authentication) Login(c *gin.Context) {
@@ -52,19 +53,53 @@ func (a Authentication) Login(c *gin.Context) {
 	}
 
 	c.Redirect(http.StatusTemporaryRedirect, authenticator.Config.AuthCodeURL(state))
-
-	c.JSON(http.StatusOK, gin.H{
-		"message": "User Sign In successfully",
-	})
 }
 
-func (a Authentication) Logout(c *gin.Context) {
-	session := sessions.Default(c)
+func (a Authentication) Logout(ctx *gin.Context) {
+	// clear up the session set.
+	session := sessions.Default(ctx)
 	session.Clear()
-	_ = session.Save() // handle error
-	c.JSON(http.StatusOK, gin.H{
-		"message": "User Sign out successfully",
-	})
+	err := session.Save()
+	if err != nil {
+		ctx.JSON(http.StatusInternalServerError, gin.H{
+			"message": err.Error(),
+		})
+		return
+	}
+
+	domain := os.Getenv("AUTH0_DOMAIN")
+
+	logoutUrl, err := url.Parse("https://" + domain)
+
+	if err != nil {
+		ctx.JSON(http.StatusInternalServerError, gin.H{
+			"message": err.Error(),
+		})
+		return
+	}
+
+	logoutUrl.Path += "/v2/logout"
+	parameters := url.Values{}
+
+	var scheme string
+	if ctx.Request.TLS == nil {
+		scheme = "http"
+	} else {
+		scheme = "https"
+	}
+
+	returnTo, err := url.Parse(scheme + "://" + ctx.Request.Host)
+	if err != nil {
+		ctx.JSON(http.StatusInternalServerError, gin.H{
+			"message": err.Error(),
+		})
+		return
+	}
+	parameters.Add("returnTo", returnTo.String())
+	parameters.Add("client_id", os.Getenv("AUTH0_CLIENT_ID"))
+	logoutUrl.RawQuery = parameters.Encode()
+
+	ctx.Redirect(http.StatusTemporaryRedirect, logoutUrl.String())
 }
 
 func (a Authentication) Callback(ctx *gin.Context) {
@@ -141,5 +176,5 @@ func (a Authentication) Callback(ctx *gin.Context) {
 
 	err = session.Save()
 
-	ctx.Redirect(http.StatusSeeOther, "/manage/root")
+	ctx.Redirect(http.StatusSeeOther, a.LandingPage)
 }
