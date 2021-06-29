@@ -1,4 +1,4 @@
-module github.com/asteriaaerospace/back-office
+module github.com/sumitasok/back-office
 
 go 1.16
 
