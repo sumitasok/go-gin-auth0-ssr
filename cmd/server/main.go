@@ -2,15 +2,17 @@ package main
 
 import (
 	"encoding/gob"
-	//"github.com/asteriaaerospace/back-office/library/middlewares"
+	"github.com/sumitasok/back-office/library/middlewares"
+
+	//"github.com/sumitasok/back-office/library/middlewares"
 	"github.com/gin-contrib/sessions"
 	"time"
 
-	"github.com/asteriaaerospace/back-office/handler"
-	logConfig "github.com/asteriaaerospace/back-office/library/log"
 	ginTemplate "github.com/foolin/gin-template"
 	gin "github.com/gin-gonic/gin"
 	log "github.com/sirupsen/logrus"
+	"github.com/sumitasok/back-office/handler"
+	logConfig "github.com/sumitasok/back-office/library/log"
 
 	"github.com/gin-contrib/sessions/redis"
 
@@ -49,7 +51,9 @@ func main() {
 	r.Use(sessions.Sessions(authSessionName, store))
 
 	home := handler.Home{}
-	auth := handler.Authentication{}
+	auth := handler.Authentication{
+		LandingPage: "/manage/root",
+	}
 
 	r.GET("/root", home.Root)
 	r.GET("/login", auth.Login)
@@ -57,7 +61,7 @@ func main() {
 	r.GET("/callback", auth.Callback)
 
 	authR := r.Group("/manage")
-	//authR.Use(middlewares.Auth0Authentication())
+	authR.Use(middlewares.Auth0Authentication())
 
 	authR.GET("/root", home.Root)
 
